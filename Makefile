@@ -1,7 +1,7 @@
 CC := gcc
 C_FILES := $(wildcard src/*.c)
 OBJ_FILES := $(addprefix obj/,$(notdir $(C_FILES:.c=.o)))
-CFLAGS := -c -std=c89 -pedantic -Wall
+CFLAGS := -c -std=c99 -pedantic -Wall -g
 LDFLAGS :=
 RM := rm -f
 PROG := tmath
