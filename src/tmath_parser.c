@@ -33,7 +33,7 @@ _mod(double a, double b)
 
 double
 _exp(double a, double b)
-{ return 0; }
+{ return pow(a, b); }
 
 int
 op_find(char c)
@@ -45,6 +45,21 @@ op_find(char c)
 	return -1;
 }
 
+node_op *
+new_op(void *left, void *right, double(*fnc)(double, double))
+{
+	node_op *op_node;
+
+	op_node = (node_op*)malloc(sizeof(*op_node));
+
+	op_node->type = NODE_OP;
+	op_node->left = left;
+	op_node->right = right;
+	op_node->fnc = fnc;
+
+	return op_node;
+}
+
 char *
 to_rpn(const char *expr)
 {
@@ -52,10 +67,10 @@ to_rpn(const char *expr)
 	op_info top_op, curr_op;
 	int head, op_index, i;
 
-	/* allocate enough memory */
+	/* Allocate enough memory */
 	rpn = malloc(strlen(expr) * 2 + 1);
 
-	/* shunting-yard algorithm */
+	/* Shunting-yard algorithm */
 	for (head = i = 0; *expr; ++expr) {
 		if (isdigit(*expr)) {
 			do {
@@ -63,7 +78,9 @@ to_rpn(const char *expr)
 			} while (isdigit(*(expr + 1)) && ++expr);
 
 			rpn[i++] = ' ';
-		} else if ((op_index = op_find(*expr)) != -1) {
+		}
+		
+		else if ((op_index = op_find(*expr)) != -1) {
 			curr_op = operators[op_index];
 
 			while ((head && stack[head - 1] != '(') &&
@@ -78,19 +95,23 @@ to_rpn(const char *expr)
 
 			stack[head++] = curr_op.ch;
 			top_op = curr_op;
-		} else if (*expr == ')') {
+		}
+		
+		else if (*expr == ')') {
 			while (stack[head - 1] != '(') {
 				rpn[i++] = stack[--head];
 				rpn[i++] = ' ';
 			}
 
 			--head;
-		} else if (*expr == '(') {
+		}
+		
+		else if (*expr == '(') {
 			stack[head++] = *expr;
 		}
 	}
 
-	/* flush the operator stack */
+	/* Flush the operator stack */
 	while (head) {
 		rpn[i++] = stack[--head];
 		rpn[i++] = ' ';
@@ -111,10 +132,13 @@ parse(const char *expr)
 	node_expr *tmp_expr;
 	node_op *tmp_op;
 
+	/* Compiler won't shut up */
 	tmp_expr = NULL;
 	tmp_op = NULL;
 
+	/* Shunting yard */
 	for (op_head = expr_head = 0; *expr; ++expr) {
+		/* If digit, push it to the expression stack */
 		if (isdigit(*expr)) {
 			tmp_expr = (node_expr*)malloc(sizeof(node_expr));
 
@@ -126,18 +150,22 @@ parse(const char *expr)
 
 			expr_stack[expr_head++] = tmp_expr;
 			tmp_expr = NULL;
-		} else if ((op_index = op_find(*expr)) != -1) {
+		}
+		
+		/* If operator */
+		else if ((op_index = op_find(*expr)) != -1) {
 			op_curr = operators[op_index];
 
+			/* Pop operator stack, link it to the two newest expressions in the expression stack
+			 * (left = oldest, right = newest) and push it where the left expression previously 
+			 * resided (which SHOULD be the top). Do this while the current operator has lower
+			 * precedence than the operator at the top of the stack, or is equal and the current
+			 * operator is left assosiative.
+			 */
 			while ((op_head && op_stack[op_head - 1] != '(') &&
 			       ((op_curr.prc < op_top.prc) ||
 				(op_curr.prc == op_top.prc && op_curr.ass == LEFT))) {
-				tmp_op = (node_op*)malloc(sizeof(node_op));
-
-				tmp_op->type = NODE_OP;
-				tmp_op->left = expr_stack[expr_head - 2];
-				tmp_op->right = expr_stack[expr_head - 1];
-				tmp_op->fnc = op_top.fnc;
+				tmp_op = new_op(expr_stack[expr_head - 2], expr_stack[expr_head - 1], op_top.fnc);
 
 				expr_stack[--expr_head - 1] = tmp_op;
 
@@ -145,16 +173,15 @@ parse(const char *expr)
 					op_top = operators[op_find(op_stack[op_head - 1])];
 			}
 
+			/* Push the operator */
 			op_stack[op_head++] = op_curr.ch;
 			op_top = op_curr;
-		} else if (*expr == ')') {
+		}
+		
+		/* Flush the operator stack until an opening parethesis is encountered */
+		else if (*expr == ')') {
 			while (op_stack[--op_head] != '(') {
-				tmp_op = (node_op*)malloc(sizeof(node_op));
-
-				tmp_op->type = NODE_OP;
-				tmp_op->left = expr_stack[expr_head - 2];
-				tmp_op->right = expr_stack[expr_head - 1];
-				tmp_op->fnc = op_top.fnc;
+				tmp_op = new_op(expr_stack[expr_head - 2], expr_stack[expr_head - 1], op_top.fnc);
 
 				expr_stack[--expr_head - 1] = tmp_op;
 
@@ -164,22 +191,20 @@ parse(const char *expr)
 
 			if (op_head)
 				op_top = operators[op_find(op_stack[op_head - 1])];
-		} else if (*expr == '(') {
+		}
+		
+		else if (*expr == '(') {
 			op_stack[op_head++] = *expr;
 		}
 	}
 
-	while (op_stack[--op_head] != '(') {
-		tmp_op = (node_op*)malloc(sizeof(node_op));
-
-		tmp_op->type = NODE_OP;
-		tmp_op->left = expr_stack[expr_head - 2];
-		tmp_op->right = expr_stack[expr_head - 1];
-		tmp_op->fnc = op_top.fnc;
+	/* Flush the operator stack */
+	while (op_head--) {
+		tmp_op = new_op(expr_stack[expr_head - 2], expr_stack[expr_head - 1], op_top.fnc);
 
 		expr_stack[--expr_head - 1] = tmp_op;
 
-		if (op_stack[op_head - 1] != '(')
+		if (op_head)
 			op_top = operators[op_find(op_stack[op_head - 1])];
 	}
 
@@ -192,5 +217,16 @@ double solve(node_op *expr_tree)
 		return ((node_expr*)expr_tree)->value;
 
 	return expr_tree->fnc(solve(expr_tree->left), solve(expr_tree->right));
+}
+
+void free_tree(node_op *expr_tree)
+{
+	if (expr_tree->type == NODE_EXPR) {
+		free(expr_tree);
+		return;
+	}
+
+	free_tree(expr_tree->left);
+	free_tree(expr_tree->right);
 }
 

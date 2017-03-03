@@ -43,5 +43,6 @@ double _exp(double a, double b);
 char *to_rpn(const char *expr);
 void *parse(const char *expr);
 double solve(node_op *expr_tree);
+void free_tree(node_op *expr_tree);
 
 #endif /* TMATH_H */

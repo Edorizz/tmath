@@ -21,10 +21,8 @@ main(int argc, char **argv)
 	}
 
 	ast = (node_op*)parse(argv[1]);
-	/*
-	printf("%g\n", ast->fnc(((node_expr*)ast->left)->value, ((node_expr*)ast->right)->value));
-	*/
-	printf("%g\n", solve(ast));
+	printf("%s = %g\n", argv[1], solve(ast));
 
+	free_tree(ast);
 	return 0;
 }
