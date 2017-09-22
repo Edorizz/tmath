@@ -1,5 +1,5 @@
 /* Include header */
-#include "../include/tmath.h"
+#include "tmath.h"
 /* C library */
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,68 +60,6 @@ new_op(void *left, void *right, double(*fnc)(double, double))
 	return op_node;
 }
 
-char *
-to_rpn(const char *expr)
-{
-	char *rpn, stack[BUFFER_SIZE];
-	op_info top_op, curr_op;
-	int head, op_index, i;
-
-	/* Allocate enough memory */
-	rpn = malloc(strlen(expr) * 2 + 1);
-
-	/* Shunting-yard algorithm */
-	for (head = i = 0; *expr; ++expr) {
-		if (isdigit(*expr)) {
-			do {
-				rpn[i++] = *expr;
-			} while (isdigit(*(expr + 1)) && ++expr);
-
-			rpn[i++] = ' ';
-		}
-		
-		else if ((op_index = op_find(*expr)) != -1) {
-			curr_op = operators[op_index];
-
-			while ((head && stack[head - 1] != '(') &&
-			      ((curr_op.prc < top_op.prc) ||
-			      (curr_op.prc == top_op.prc && curr_op.ass == LEFT))) {
-				rpn[i++] = top_op.ch;
-				rpn[i++] = ' ';
-
-				if (--head)
-					top_op = operators[op_find(stack[head - 1])];
-			}
-
-			stack[head++] = curr_op.ch;
-			top_op = curr_op;
-		}
-		
-		else if (*expr == ')') {
-			while (stack[head - 1] != '(') {
-				rpn[i++] = stack[--head];
-				rpn[i++] = ' ';
-			}
-
-			--head;
-		}
-		
-		else if (*expr == '(') {
-			stack[head++] = *expr;
-		}
-	}
-
-	/* Flush the operator stack */
-	while (head) {
-		rpn[i++] = stack[--head];
-		rpn[i++] = ' ';
-	}
-
-	rpn[i] = '\0';
-
-	return rpn;
-}
-
 void *
 parse(const char *expr)
 {
@@ -145,8 +83,9 @@ parse(const char *expr)
 			tmp_expr->type = NODE_EXPR; 
 			sscanf(expr, "%lf", &tmp_expr->value);
 
-			while (isdigit(*(expr + 1)) || *(expr + 1) == '.')
+			while (isdigit(*(expr + 1)) || *(expr + 1) == '.') {
 				++expr;
+			}
 
 			expr_stack[expr_head++] = tmp_expr;
 			tmp_expr = NULL;
@@ -169,8 +108,9 @@ parse(const char *expr)
 
 				expr_stack[--expr_head - 1] = tmp_op;
 
-				if (--op_head)
+				if (--op_head) {
 					op_top = operators[op_find(op_stack[op_head - 1])];
+				}
 			}
 
 			/* Push the operator */
@@ -185,12 +125,14 @@ parse(const char *expr)
 
 				expr_stack[--expr_head - 1] = tmp_op;
 
-				if (op_stack[op_head - 1] != '(')
+				if (op_stack[op_head - 1] != '(') {
 					op_top = operators[op_find(op_stack[op_head - 1])];
+				}
 			}
 
-			if (op_head)
+			if (op_head) {
 				op_top = operators[op_find(op_stack[op_head - 1])];
+			}
 		}
 		
 		else if (*expr == '(') {
@@ -204,8 +146,9 @@ parse(const char *expr)
 
 		expr_stack[--expr_head - 1] = tmp_op;
 
-		if (op_head)
+		if (op_head) {
 			op_top = operators[op_find(op_stack[op_head - 1])];
+		}
 	}
 
 	return expr_stack[0];
@@ -213,8 +156,9 @@ parse(const char *expr)
 
 double solve(node_op *expr_tree)
 {
-	if (expr_tree->type == NODE_EXPR)
+	if (expr_tree->type == NODE_EXPR) {
 		return ((node_expr*)expr_tree)->value;
+	}
 
 	return expr_tree->fnc(solve(expr_tree->left), solve(expr_tree->right));
 }
