@@ -7,9 +7,10 @@
 #include <ctype.h>
 #include <math.h>
 
-const op_info operators[] = { { '+', 1, LEFT, _sum },  { '-', 1, LEFT, _sub },
-			      { '*', 2, LEFT, _mult }, { '/', 2, LEFT, _div }, { '%', 2, LEFT, _mod },
-			      { '^', 3, RIGHT, _exp } };
+/* Valid operations */
+const struct op_info operators[] = { { '+', 1, LEFT, _sum },  { '-', 1, LEFT, _sub },
+				     { '*', 2, LEFT, _mult }, { '/', 2, LEFT, _div }, { '%', 2, LEFT, _mod },
+				     { '^', 3, RIGHT, _exp } };
 
 double
 _sum(double a, double b)
@@ -45,12 +46,12 @@ op_find(char c)
 	return -1;
 }
 
-node_op *
+struct node_op *
 new_op(void *left, void *right, double(*fnc)(double, double))
 {
-	node_op *op_node;
+	struct node_op *op_node;
 
-	op_node = (node_op*)malloc(sizeof(*op_node));
+	op_node = (struct node_op *) malloc(sizeof (*op_node));
 
 	op_node->type = NODE_OP;
 	op_node->left = left;
@@ -63,12 +64,12 @@ new_op(void *left, void *right, double(*fnc)(double, double))
 void *
 parse(const char *expr)
 {
-	char op_stack[BUFFER_SIZE];
-	void *expr_stack[BUFFER_SIZE];
+	char op_stack[STACK_SIZ];
+	void *expr_stack[STACK_SIZ];
 	int op_head, expr_head, op_index;
-	op_info op_curr, op_top;
-	node_expr *tmp_expr;
-	node_op *tmp_op;
+	struct op_info op_curr, op_top;
+	struct node_expr *tmp_expr;
+	struct node_op *tmp_op;
 
 	/* Compiler won't shut up */
 	tmp_expr = NULL;
@@ -78,9 +79,9 @@ parse(const char *expr)
 	for (op_head = expr_head = 0; *expr; ++expr) {
 		/* If digit, push it to the expression stack */
 		if (isdigit(*expr)) {
-			tmp_expr = (node_expr*)malloc(sizeof(node_expr));
+			tmp_expr = (struct node_expr *) malloc(sizeof(struct node_expr));
 
-			tmp_expr->type = NODE_EXPR; 
+			tmp_expr->type = NODE_EXPR;
 			sscanf(expr, "%lf", &tmp_expr->value);
 
 			while (isdigit(*(expr + 1)) || *(expr + 1) == '.') {
@@ -154,16 +155,16 @@ parse(const char *expr)
 	return expr_stack[0];
 }
 
-double solve(node_op *expr_tree)
+double eval(struct node_op *expr_tree)
 {
 	if (expr_tree->type == NODE_EXPR) {
-		return ((node_expr*)expr_tree)->value;
+		return ((struct node_expr *) expr_tree)->value;
 	}
 
-	return expr_tree->fnc(solve(expr_tree->left), solve(expr_tree->right));
+	return expr_tree->fnc(eval(expr_tree->left), eval(expr_tree->right));
 }
 
-void free_tree(node_op *expr_tree)
+void free_tree(struct node_op *expr_tree)
 {
 	if (expr_tree->type == NODE_EXPR) {
 		free(expr_tree);
