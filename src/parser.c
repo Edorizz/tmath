@@ -51,7 +51,7 @@ new_op(void *left, void *right, double(*fnc)(double, double))
 {
 	struct node_op *op_node;
 
-	op_node = (struct node_op *) malloc(sizeof (*op_node));
+	op_node = malloc(sizeof (*op_node));
 
 	op_node->type = NODE_OP;
 	op_node->left = left;
@@ -62,11 +62,11 @@ new_op(void *left, void *right, double(*fnc)(double, double))
 }
 
 void *
-parse(const char *expr)
+parse(const char *expr, struct var *vars, size_t var_cnt)
 {
-	char op_stack[STACK_SIZ];
+	char op_stack[STACK_SIZ], str[STACK_SIZ];
 	void *expr_stack[STACK_SIZ];
-	int op_head, expr_head, op_index;
+	int op_head, expr_head, op_index, i;
 	struct op_info op_curr, op_top;
 	struct node_expr *tmp_expr;
 	struct node_op *tmp_op;
@@ -79,7 +79,7 @@ parse(const char *expr)
 	for (op_head = expr_head = 0; *expr; ++expr) {
 		/* If digit, push it to the expression stack */
 		if (isdigit(*expr)) {
-			tmp_expr = (struct node_expr *) malloc(sizeof(struct node_expr));
+			tmp_expr = (struct node_expr *) malloc(sizeof (struct node_expr));
 
 			tmp_expr->type = NODE_EXPR;
 			sscanf(expr, "%lf", &tmp_expr->value);
@@ -91,12 +91,28 @@ parse(const char *expr)
 			expr_stack[expr_head++] = tmp_expr;
 			tmp_expr = NULL;
 		}
+
+		if (isalpha(*expr)) {
+			i = 0;
+			do {
+				str[i++] = *expr;
+			} while (isalpha(*(expr + 1)));
+
+			str[i] = '\0';
+
+			for (i = 0; i != var_cnt; ++i) {
+				if (strcmp(vars[i].label, str) == 0) {
+					expr_stack[expr_head++] = vars[i].expr;
+				}
+			}
+		}
 		
 		/* If operator */
 		else if ((op_index = op_find(*expr)) != -1) {
 			op_curr = operators[op_index];
 
-			/* Pop operator stack, link it to the two newest expressions in the expression stack
+			/*
+			 * Pop operator stack, link it to the two newest expressions in the expression stack
 			 * (left = oldest, right = newest) and push it where the left expression previously 
 			 * resided (which SHOULD be the top). Do this while the current operator has lower
 			 * precedence than the operator at the top of the stack, or is equal and the current

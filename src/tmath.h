@@ -3,6 +3,7 @@
 
 /* C library */
 #include <stdint.h>
+#include <stdlib.h>
 
 #define STACK_SIZ	256
 #define RIGHT		  0
@@ -47,8 +48,8 @@ double _div(double a, double b);
 double _mod(double a, double b);
 double _exp(double a, double b);
 
-void *parse(const char *expr);
+void   *parse(const char *expr, struct var *vars, size_t var_cnt);
 double eval(struct node_op *expr_tree);
-void free_tree(struct node_op *expr_tree);
+void   free_tree(struct node_op *expr_tree);
 
 #endif /* TMATH_H */

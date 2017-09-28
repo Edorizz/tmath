@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-/* tmath */
+/* Custom */
 #include "tmath.h"
 #include "resiz_arr.h"
 
@@ -28,12 +28,12 @@ main(int argc, char **argv)
 		*nl = '\0';
 
 		if ((nl = strchr(input_buf, '=')) == NULL) {
-			input_expr.expr = (struct node_op *) parse(input_buf);
+			input_expr.expr = (struct node_op *) parse(input_buf, (struct var *) var.arr, var.curr_siz);
 			printf("%g\n", eval(input_expr.expr));
 			free_tree(input_expr.expr);
 
 		} else {
-			input_expr.expr = (struct node_op *) parse(nl + 1);
+			input_expr.expr = (struct node_op *) parse(nl + 1, (struct var *) var.arr, var.curr_siz);
 
 			/*
 			 * Skip to the first character of the first word, which
